@@ -73,6 +73,13 @@ function evalNode(node: TemplateNode, ctx: EvalContext): string {
 function evalRef(target: RefTarget, methods: MethodCall[], ctx: EvalContext): string {
   const node = resolveList(target, ctx);
   if (!node) {
+    // A bare name that isn't a list may be a variable (e.g. [name] fed by an
+    // input). Fall back to variable scope before giving up. This mirrors
+    // Perchance, where [x] resolves a list OR a variable.
+    const varName = target.rawName;
+    if (varName && !target.path && ctx.scope.has(varName)) {
+      return applyStringMethods(ctx.scope.get(varName) ?? '', methods);
+    }
     // Unresolved reference: surface it visibly rather than silently dropping.
     return `⟨?${targetLabel(target)}⟩`;
   }

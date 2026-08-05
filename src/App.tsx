@@ -10,6 +10,7 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { Palette } from '@/builder/Palette';
 import { ListsPane } from '@/builder/ListsPane';
 import { OutputPane } from '@/builder/OutputPane';
+import { Inspector } from '@/builder/Inspector';
 import { handleDragEnd } from '@/builder/dndHandlers';
 import { PreviewFrame } from '@/preview/PreviewFrame';
 import { ExportPanel } from '@/export/ExportPanel';
@@ -66,6 +67,7 @@ export default function App(): React.ReactElement {
             <div className="border-t border-stage-border pt-4">
               <OutputPane />
             </div>
+            <Inspector />
           </section>
 
           <section className="flex min-h-0 flex-col rounded-lg border border-stage-border bg-stage-bg p-3">

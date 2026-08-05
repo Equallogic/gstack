@@ -1,5 +1,16 @@
 import type { OutputBlock } from '@/model/types';
 import { useProjectStore } from '@/store/useProjectStore';
+import { PLUGIN_DEFS } from '@/catalog/components';
+
+/** Find the plugin def whose importName matches (for arg labels). */
+function pluginDefFor(importName: string) {
+  return Object.values(PLUGIN_DEFS).find((d) => d.importName === importName);
+}
+
+/** Flatten a plugin arg's template value to plain text for editing. */
+function argText(value: { kind: string; value?: string }[]): string {
+  return value.map((v) => ('value' in v && typeof v.value === 'string' ? v.value : '')).join('');
+}
 
 function Field({
   label,
@@ -27,6 +38,7 @@ export function Inspector(): React.ReactElement | null {
   const listOrder = useProjectStore((s) => s.project.listOrder);
   const lists = useProjectStore((s) => s.project.lists);
   const updateBlock = useProjectStore((s) => s.updateBlock);
+  const setPluginArg = useProjectStore((s) => s.setPluginArg);
   const select = useProjectStore((s) => s.select);
 
   if (selection?.kind !== 'block') return null;
@@ -162,6 +174,29 @@ export function Inspector(): React.ReactElement | null {
               }
             />
           </Field>
+        )}
+
+        {block.kind === 'pluginBlock' && (
+          <>
+            <p className="text-[11px] leading-snug text-gray-500">
+              Imports <span className="text-sky-400">{block.importName}</span>. Preview shows a
+              placeholder; the real plugin runs on Perchance after export.
+            </p>
+            {(pluginDefFor(block.importName)?.argKeys ?? ['prompt']).map((key) => {
+              const arg = block.args.find((a) => a.key === key);
+              return (
+                <Field key={key} label={key}>
+                  <textarea
+                    className={inputCls}
+                    rows={2}
+                    value={arg ? argText(arg.value) : ''}
+                    placeholder={key === 'prompt' ? 'Describe what to generate...' : ''}
+                    onChange={(e) => setPluginArg(block.id, key, e.target.value)}
+                  />
+                </Field>
+              );
+            })}
+          </>
         )}
 
         {block.kind === 'html' && (

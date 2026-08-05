@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
-import { PALETTE, type PaletteItem } from '@/catalog/components';
+import { PALETTE, isPluginKey, type PaletteItem } from '@/catalog/components';
 
 function PaletteChip({ item }: { item: PaletteItem }): React.ReactElement {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -30,7 +30,8 @@ function PaletteChip({ item }: { item: PaletteItem }): React.ReactElement {
 
 export function Palette(): React.ReactElement {
   const dataItems = PALETTE.filter((p) => p.zone === 'lists');
-  const outputItems = PALETTE.filter((p) => p.zone === 'output');
+  const outputItems = PALETTE.filter((p) => p.zone === 'output' && !isPluginKey(p.key));
+  const pluginItems = PALETTE.filter((p) => isPluginKey(p.key));
   return (
     <div className="space-y-4">
       <div>
@@ -57,6 +58,16 @@ export function Palette(): React.ReactElement {
         </h3>
         <div className="space-y-1.5">
           {outputItems.map((item) => (
+            <PaletteChip key={item.key} item={item} />
+          ))}
+        </div>
+      </div>
+      <div>
+        <h3 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+          AI plugins
+        </h3>
+        <div className="space-y-1.5">
+          {pluginItems.map((item) => (
             <PaletteChip key={item.key} item={item} />
           ))}
         </div>

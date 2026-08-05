@@ -64,8 +64,19 @@ function renderBlock(block: OutputBlock, ctx: EvalContext): string {
       return `<label class="perch-check"><input type="checkbox" data-perch-bind="${attr(block.bindVar)}"${checked ? ' checked' : ''} /> ${label}</label>`;
     }
     case 'pluginBlock': {
-      const parts = block.args.map((a) => `${escLabel(a.key)}: ${escLabel(evalTemplate(a.value, ctx))}`);
-      return `<div class="perch-plugin">⟨${escLabel(block.importName)}⟩${parts.length ? '<br /><small>' + parts.join(' · ') + '</small>' : ''}</div>`;
+      const prompt = block.args.find((a) => a.key === 'prompt');
+      const promptText = prompt ? escLabel(evalTemplate(prompt.value, ctx)) : '';
+      const isImage = block.importName === 'image';
+      const icon = isImage ? '🖼' : '✎';
+      const kind = isImage ? 'AI image' : 'AI text';
+      return (
+        `<div class="perch-plugin">` +
+        `<div style="font-size:22px">${icon}</div>` +
+        `<strong>${kind}</strong> <span style="opacity:.6">(${escLabel(block.importName)})</span>` +
+        (promptText ? `<br /><small>“${promptText}”</small>` : '') +
+        `<br /><small style="opacity:.6">runs on Perchance after export</small>` +
+        `</div>`
+      );
     }
     default: {
       const _exhaustive: never = block;

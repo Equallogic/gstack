@@ -1,6 +1,6 @@
 import type { DragEndEvent } from '@dnd-kit/core';
 import { useProjectStore } from '@/store/useProjectStore';
-import { makeBlockFor, paletteItem, type Zone } from '@/catalog/components';
+import { isPluginKey, makeBlockFor, paletteItem, type Zone } from '@/catalog/components';
 
 /** Which canvas zone does a drop target id belong to? */
 function zoneOf(overId: string): Zone | undefined {
@@ -25,6 +25,10 @@ export function handleDragEnd(event: DragEndEvent): void {
     const zone = zoneOf(overId) ?? item.zone;
     if (item.key === 'list' && zone === 'lists') {
       store.addList();
+      return;
+    }
+    if (isPluginKey(item.key) && zone === 'output') {
+      store.addPluginComponent(item.key);
       return;
     }
     if (zone === 'output') {

@@ -8,6 +8,8 @@ import type {
 } from '@/model/types';
 import { makeStarterProject, makeItem, makeList } from '@/model/defaults';
 import { textToTemplate } from '@/model/templateText';
+import { PLUGIN_DEFS } from '@/catalog/components';
+import { makeId } from '@/model/ids';
 import { randomSeed } from '@/lib/rng';
 
 export type Selection =
@@ -47,6 +49,10 @@ interface ProjectState {
   updateBlock(blockId: string, patch: Partial<OutputBlock>): void;
   removeBlock(blockId: string): void;
   reorderBlocks(from: number, to: number): void;
+
+  // Plugins
+  addPluginComponent(pluginKey: string): void;
+  setPluginArg(blockId: string, key: string, value: string): void;
 }
 
 /** Produce a fresh project object (immutable update helper). */
@@ -190,6 +196,40 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       withProject(s, (p) => {
         const [moved] = p.output.blocks.splice(from, 1);
         if (moved) p.output.blocks.splice(to, 0, moved);
+      }),
+    );
+  },
+
+  addPluginComponent(pluginKey) {
+    const def = PLUGIN_DEFS[pluginKey];
+    if (!def) return;
+    set((s) =>
+      withProject(s, (p) => {
+        if (!p.imports.some((imp) => imp.importName === def.importName)) {
+          p.imports.push({ id: makeId('imp'), importName: def.importName, plugin: def.plugin });
+        }
+        p.output.blocks.push({
+          kind: 'pluginBlock',
+          id: makeId('block'),
+          importName: def.importName,
+          args: def.makeArgs(),
+        });
+      }),
+    );
+  },
+  setPluginArg(blockId, key, value) {
+    set((s) =>
+      withProject(s, (p) => {
+        const block = p.output.blocks.find((b) => b.id === blockId);
+        if (block?.kind !== 'pluginBlock') return;
+        const existing = block.args.find((a) => a.key === key);
+        if (value === '') {
+          block.args = block.args.filter((a) => a.key !== key);
+        } else if (existing) {
+          existing.value = [{ kind: 'text', value }];
+        } else {
+          block.args.push({ key, value: [{ kind: 'text', value }] });
+        }
       }),
     );
   },

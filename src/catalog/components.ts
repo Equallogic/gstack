@@ -38,7 +38,49 @@ export const PALETTE: PaletteItem[] = [
     zone: 'output',
     hint: 'Lets the user pick a value into a variable.',
   },
+  {
+    key: 'aiImage',
+    label: 'AI Image',
+    icon: '🖼',
+    zone: 'output',
+    hint: 'Generates an image from a prompt (text-to-image-plugin).',
+  },
+  {
+    key: 'aiText',
+    label: 'AI Text',
+    icon: '✎',
+    zone: 'output',
+    hint: 'Generates text from a prompt (ai-text-plugin).',
+  },
 ];
+
+/** Plugin components carry an import + a default call. */
+export interface PluginDef {
+  importName: string;
+  plugin: string;
+  /** Human labels for the args the Inspector should expose. */
+  argKeys: string[];
+  makeArgs(): { key: string; value: { kind: 'text'; value: string }[] }[];
+}
+
+export const PLUGIN_DEFS: Record<string, PluginDef> = {
+  aiImage: {
+    importName: 'image',
+    plugin: 'text-to-image-plugin',
+    argKeys: ['prompt', 'negativePrompt'],
+    makeArgs: () => [{ key: 'prompt', value: [{ kind: 'text', value: 'a red fox in a snowy forest' }] }],
+  },
+  aiText: {
+    importName: 'aiText',
+    plugin: 'ai-text-plugin',
+    argKeys: ['prompt'],
+    makeArgs: () => [{ key: 'prompt', value: [{ kind: 'text', value: 'Write a short heroic name.' }] }],
+  },
+};
+
+export function isPluginKey(key: string): boolean {
+  return key in PLUGIN_DEFS;
+}
 
 export function paletteItem(key: string): PaletteItem | undefined {
   return PALETTE.find((p) => p.key === key);

@@ -71,6 +71,11 @@ function evalNode(node: TemplateNode, ctx: EvalContext): string {
 // ─── References + method chains ────────────────────────────────────────────
 
 function evalRef(target: RefTarget, methods: MethodCall[], ctx: EvalContext): string {
+  // [this.prop] resolves against the object-list item currently rendering.
+  if (target.rawName === 'this' && target.path) {
+    return applyStringMethods(ctx.thisScope?.[target.path] ?? '', methods);
+  }
+
   const node = resolveList(target, ctx);
   if (!node) {
     // A bare name that isn't a list may be a variable (e.g. [name] fed by an
@@ -147,10 +152,32 @@ export function selectOne(node: ListNode, ctx: EvalContext): string {
   try {
     const weights = itemWeights(node.items, ctx);
     const i = ctx.rng.weightedIndex(weights);
-    return evalTemplate(node.items[i].content, ctx);
+    return renderItem(node, node.items[i], ctx);
   } finally {
     releaseDepth(ctx);
   }
+}
+
+/**
+ * Render one item. For an object-list (the list has a $output template), bind
+ * the item's properties as `this.*` and render the template; otherwise render
+ * the item's own content.
+ */
+function renderItem(node: ListNode, item: ListItem, ctx: EvalContext): string {
+  if (node.outputConfig && item.properties) {
+    const props: Record<string, string> = {};
+    for (const [key, value] of Object.entries(item.properties)) {
+      props[key] = evalTemplate(value, ctx);
+    }
+    const prevThis = ctx.thisScope;
+    ctx.thisScope = props;
+    try {
+      return evalTemplate(node.outputConfig.template, ctx);
+    } finally {
+      ctx.thisScope = prevThis;
+    }
+  }
+  return evalTemplate(item.content, ctx);
 }
 
 function selectMany(node: ListNode, count: number, unique: boolean, ctx: EvalContext): string[] {
@@ -165,7 +192,7 @@ function selectMany(node: ListNode, count: number, unique: boolean, ctx: EvalCon
       );
       const pick = ctx.rng.weightedIndex(weights);
       const itemIndex = pool.splice(pick, 1)[0];
-      results.push(evalTemplate(node.items[itemIndex].content, ctx));
+      results.push(renderItem(node, node.items[itemIndex], ctx));
     }
   } else {
     for (let k = 0; k < count; k++) results.push(selectOne(node, ctx));
@@ -191,7 +218,7 @@ function applySelection(node: ListNode, method: MethodCall, ctx: EvalContext): s
     case 'evaluateItem':
       return selectOne(node, ctx);
     case 'selectAll':
-      return node.items.map((it) => evalTemplate(it.content, ctx));
+      return node.items.map((it) => renderItem(node, it, ctx));
     case 'selectMany':
       return selectMany(node, resolveCount(method, ctx), false, ctx);
     case 'selectUnique':
@@ -213,7 +240,7 @@ function consumeOne(node: ListNode, ctx: EvalContext): string {
   if (remaining.length === 0) return '';
   const pick = ctx.rng.int(remaining.length);
   const itemIndex = remaining.splice(pick, 1)[0];
-  return evalTemplate(node.items[itemIndex].content, ctx);
+  return renderItem(node, node.items[itemIndex], ctx);
 }
 
 function applyIntrospection(node: ListNode, method: MethodCall): string {

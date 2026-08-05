@@ -11,6 +11,8 @@ export interface EvalContext {
   listsByName: Map<string, ListNode>;
   /** consumableList state: a synthetic key -> remaining item indices. */
   consumables: Map<string, number[]>;
+  /** Property values of the object-list item currently being rendered ([this.x]). */
+  thisScope?: Record<string, string>;
   /** Guards against runaway recursion in self-referential grammars. */
   depth: number;
 }

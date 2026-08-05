@@ -19,10 +19,8 @@ function nodeToText(n: TemplateNode, nameOf: (listId: string) => string): string
     case 'text':
       return n.value;
     case 'ref': {
-      const base = n.target.listId
-        ? nameOf(n.target.listId)
-        : n.target.rawName ?? n.target.path ?? '';
-      const path = n.target.path && n.target.listId ? `.${n.target.path}` : '';
+      const base = n.target.listId ? nameOf(n.target.listId) : n.target.rawName ?? '';
+      const path = n.target.path ? `.${n.target.path}` : '';
       const methods = n.methods.map((m) => `.${m.name}${m.args?.length ? `(${m.args.join(',')})` : ''}`).join('');
       return `[${base}${path}${methods}]`;
     }

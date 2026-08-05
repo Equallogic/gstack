@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        color: #1a1d24;
+        background: #fbfbfd;
+        line-height: 1.5;
+      }
+      #stage { min-height: 40px; }
+      .perch-btn {
+        margin-top: 10px;
+        padding: 6px 14px;
+        font-size: 14px;
+        border: 1px solid #c7ccd6;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .perch-btn:hover { background: #f0f2f6; }
+      .perch-field { margin: 8px 0; }
+      .perch-label { display: block; font-size: 12px; color: #5a616e; margin-bottom: 2px; }
+      .perch-input {
+        padding: 5px 8px;
+        font-size: 14px;
+        border: 1px solid #c7ccd6;
+        border-radius: 6px;
+        min-width: 200px;
+      }
+      .perch-check { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0; }
+      .perch-plugin {
+        display: inline-block;
+        padding: 10px 14px;
+        margin-top: 8px;
+        border: 1px dashed #b3b9c4;
+        border-radius: 8px;
+        background: #f4f6fa;
+        color: #5a616e;
+        font-size: 13px;
+      }
+      .perch-empty { color: #99a0ad; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"><span class="perch-empty">Nothing to preview yet.</span></div>
+    <script>
+      (function () {
+        var stage = document.getElementById('stage');
+
+        // Parent -> iframe: render fresh HTML, or patch specific output spans.
+        window.addEventListener('message', function (event) {
+          var msg = event.data;
+          if (!msg || typeof msg !== 'object') return;
+          if (msg.type === 'render') {
+            stage.innerHTML = msg.html || '<span class="perch-empty">Empty generator.</span>';
+          } else if (msg.type === 'patch' && msg.updates) {
+            for (var domId in msg.updates) {
+              var el = document.getElementById(domId);
+              if (el) el.innerHTML = msg.updates[domId];
+            }
+          }
+        });
+
+        // Delegate control events back up to the parent (which owns the engine).
+        stage.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-perch-action]');
+          if (!btn) return;
+          var targets = (btn.getAttribute('data-perch-targets') || '')
+            .split(' ')
+            .filter(Boolean);
+          parent.postMessage({ type: 'action', action: 'update', targets: targets }, '*');
+        });
+
+        stage.addEventListener('input', function (e) {
+          var el = e.target.closest('[data-perch-bind]');
+          if (!el) return;
+          var value = el.type === 'checkbox' ? String(el.checked) : el.value;
+          parent.postMessage(
+            { type: 'input', bindVar: el.getAttribute('data-perch-bind'), value: value },
+            '*',
+          );
+        });
+
+        parent.postMessage({ type: 'ready' }, '*');
+      })();
+    </script>
+  </body>
+</html>

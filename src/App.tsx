@@ -21,6 +21,7 @@ export default function App(): React.ReactElement {
   const projectName = useProjectStore((s) => s.project.meta.name);
   const setProjectName = useProjectStore((s) => s.setProjectName);
   const reroll = useProjectStore((s) => s.reroll);
+  const newProject = useProjectStore((s) => s.newProject);
   const [showExport, setShowExport] = useState(false);
 
   // A small activation distance so clicking palette/handles doesn't start a drag.
@@ -39,6 +40,15 @@ export default function App(): React.ReactElement {
           />
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-stage-border px-3 py-1 text-xs text-gray-300 hover:bg-stage-panel"
+            onClick={() => {
+              if (confirm('Start a new generator? Your current one will be replaced.')) newProject();
+            }}
+          >
+            New
+          </button>
           <button
             type="button"
             className="rounded-md border border-stage-border px-3 py-1 text-xs text-gray-300 hover:bg-stage-panel"

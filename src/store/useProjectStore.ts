@@ -31,6 +31,7 @@ interface ProjectState {
   setProjectName(name: string): void;
   setSlug(slug: string): void;
   loadProject(project: GeneratorProject): void;
+  newProject(): void;
 
   // Lists
   addList(name?: string): ListId;
@@ -73,8 +74,25 @@ function uniqueListName(project: GeneratorProject, base: string): string {
   return `${base}${i}`;
 }
 
+const STORAGE_KEY = 'perchance-builder:project';
+
+/** Load a saved project from localStorage, falling back to the starter. */
+function loadInitialProject(): GeneratorProject {
+  if (typeof localStorage === 'undefined') return makeStarterProject();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as GeneratorProject;
+      if (parsed?.schemaVersion === 1 && parsed.lists && parsed.output) return parsed;
+    }
+  } catch {
+    // Corrupt/absent storage: fall through to a fresh starter project.
+  }
+  return makeStarterProject();
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
-  project: makeStarterProject(),
+  project: loadInitialProject(),
   selection: null,
   previewSeed: 1,
 
@@ -93,6 +111,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
   loadProject(project) {
     set({ project, selection: null });
+  },
+  newProject() {
+    set({ project: makeStarterProject(), selection: null });
   },
 
   addList(name) {
@@ -234,3 +255,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     );
   },
 }));
+
+// Persist the project to localStorage on every change (best-effort).
+if (typeof localStorage !== 'undefined') {
+  let last = useProjectStore.getState().project;
+  useProjectStore.subscribe((state) => {
+    if (state.project === last) return;
+    last = state.project;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.project));
+    } catch {
+      // Quota or serialization failure: skip this save, keep the app running.
+    }
+  });
+}
